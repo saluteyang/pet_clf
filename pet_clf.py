@@ -35,7 +35,7 @@ from sklearn.metrics import cohen_kappa_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from mlxtend.plotting import plot_decision_regions
-from sklearn.tree import export_graphviz
+from sklearn.tree import export_graphviz, DecisionTreeClassifier
 
 # data pre-processing #########################
 # training data
@@ -224,8 +224,17 @@ print("Test set: {:.2f}%".format(100*f1_score(label_test, rfmodel2.predict(X3_te
 
 # plot first few levels of decision tree  ###############
 # extract one single tree
-estimator = rfmodel2.estimators_[5]
-export_graphviz(estimator, out_file='tree.dot', max_depth=3,
+# estimator = rfmodel2.estimators_[5]
+# export_graphviz(estimator, out_file='tree.dot', max_depth=3,
+#                 feature_names=train_df.drop(columns=['AdoptionSpeed', 'PetID']).columns,
+#                 class_names=['adopted', 'not_adopted'],
+#                 rounded=True, proportion=False,
+#                 precision=2, filled=True)
+
+# fit a single decision tree for illustration purposes
+dt = DecisionTreeClassifier(min_samples_leaf=10, class_weight='balanced')
+dt.fit(X3_train, label_train)
+export_graphviz(dt, out_file='tree_dt.dot', max_depth=3,
                 feature_names=train_df.drop(columns=['AdoptionSpeed', 'PetID']).columns,
                 class_names=['adopted', 'not_adopted'],
                 rounded=True, proportion=False,
