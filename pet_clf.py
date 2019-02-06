@@ -31,6 +31,8 @@ from sklearn.metrics import precision_score, recall_score,f1_score, confusion_ma
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.metrics import cohen_kappa_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
 # data pre-processing #########################
 # training data
@@ -138,7 +140,6 @@ plt.show()
 print("ROC AUC score = ", roc_auc_score(label_test, logit.predict_proba(X_test)[:, 1]))
 
 # random forest fitting #######################
-from sklearn.ensemble import RandomForestClassifier
 
 # test train split
 X3_train, X3_test, label_train, label_test = train_test_split(train_df.drop(columns=['AdoptionSpeed', 'PetID']),
@@ -169,6 +170,33 @@ print("Test set: {:.2f}%".format(100*f1_score(label_test, rfmodel2.predict(X3_te
 # Training: 69.54%
 # Test set: 56.55%
 
+
+# knn fitting ########################
+knn_f1 = []
+for k in range(3,21):
+    knn = KNeighborsClassifier(n_neighbors=k)
+    knn.fit(X3_train, label_train)
+    knn_f1.append(tuple((k, f1_score(label_test, knn.predict(X3_test)))))
+knn_f1
+
+# [(3, 0.3842794759825327),
+#  (4, 0.2714285714285714),
+#  (5, 0.3657375934738274),
+#  (6, 0.2611516626115166),
+#  (7, 0.33764367816091956),
+#  (8, 0.22591362126245845),
+#  (9, 0.301659125188537),
+#  (10, 0.2233502538071066),
+#  (11, 0.2845973416731822),
+#  (12, 0.21070811744386878),
+#  (13, 0.26634382566585957),
+#  (14, 0.21015761821366025),
+#  (15, 0.260149130074565),
+#  (16, 0.20598591549295775),
+#  (17, 0.23659574468085104),
+#  (18, 0.18996415770609318),
+#  (19, 0.2302405498281787),
+#  (20, 0.19099099099099096)]
 
 # ordinal logistic ###############################
 
