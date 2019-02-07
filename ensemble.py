@@ -6,10 +6,11 @@ import seaborn as sns
 plt.style.use('ggplot')
 np.set_printoptions(suppress=True) # Suppress scientific notation where possible
 
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB
 from mlxtend.classifier import StackingClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, AdaBoostClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
@@ -46,9 +47,21 @@ X_test = std.transform(X_test)
 logit = LogisticRegression(C=0.95, class_weight='balanced')
 rf = RandomForestClassifier(n_estimators=100, min_samples_leaf=10, n_jobs=-1,
                             class_weight='balanced')
+
+# extremely randomized trees (a random subset of features is used as in RF,
+# additionally, instead of the most discriminative thresholds, randomly generated
+# thresholds are used as splitting rules
+et = ExtraTreesClassifier(n_estimators=100, min_samples_leaf=10, n_jobs=-1,
+                            class_weight='balanced')
+
+# in AdaBoost, weights of incorrectly classified instances are adjusted so
+# the model will focusing more on these difficult cases
+adb = AdaBoostClassifier(base_estimator=DecisionTreeClassifier(max_depth=3, class_weight='balanced'),
+                         n_estimators=100)
+
 svm = SVC(C=0.95, class_weight='balanced')
 
-models = ['logit', 'rf', 'svm']
+models = ['logit', 'rf', 'et', 'adb', 'svm']
 
 for model_name in models:
     curr_model = eval(model_name)
@@ -58,7 +71,7 @@ for model_name in models:
 
 # ensembling from pre-trained models ###########
 # Load pre-trained/tuned models
-models = ['rf', 'svm']
+models = ['rf', 'et', 'adb', 'svm']
 for model_name in models:
     with open(f"models/{model_name}.pickle", "rb") as pfile:
         exec(f"{model_name} = pickle.load(pfile)")
@@ -72,12 +85,19 @@ for model_name in models:
 
 # knn score: 0.3842794759825327
 # logit score: 0.49096022498995573
-# rf score: 0.5655375552282769
+# rf score: 0.5743639921722113
+# et score: 0.5353053435114504
+# adb score: 0.5383211678832116
 # svm score: 0.5563347358578775
 
 # create meta-classifier
-stacked = StackingClassifier(classifiers=model_vars, meta_classifier=BernoulliNB(), use_probas=False)
+stacked = StackingClassifier(classifiers=model_vars,
+                             meta_classifier=LogisticRegression(class_weight='balanced'),
+                             use_probas=False)
 stacked.fit(X_train, label_train)
 
 print(f'stacked score: {f1_score(label_test, stacked.predict(X_test))}')
-# stacked score: 0.5454545454545455
+# stacked score: 0.5604166666666668 (Bernoulli meta)
+# stacked score: 0.5366666666666667 (Logistic meta)
+# stacked score: 0.5636101776284205 (Logistic meta with balanced class weights)
+

@@ -32,7 +32,7 @@ from sklearn.metrics import precision_score, recall_score,f1_score, confusion_ma
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.metrics import cohen_kappa_score
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, AdaBoostClassifier, GradientBoostingClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from mlxtend.plotting import plot_decision_regions
 from sklearn.tree import export_graphviz, DecisionTreeClassifier
@@ -86,11 +86,15 @@ print("Test set: {:.2f}%".format(100*f1_score(label_test, logit.predict(X2_test)
 numeric_cols = ['Age', 'MaturitySize', 'FurLength', 'Fee', 'PhotoAmt',
                 'magnitude', 'score', 'AdoptionSpeed']
 
+numeric_cols = ['Age', 'PhotoAmt', 'AdoptionSpeed']
+
 def plot_features(df):
-    sample = (df[numeric_cols].sample(1000, random_state=44))
+    sample = df[numeric_cols].sample(1000, random_state=44)
     sns.pairplot(sample, hue='AdoptionSpeed', plot_kws=dict(alpha=.3, edgecolor='none'))
 
 plot_features(train_df)
+plt.savefig('age_photoamt.png', dpi=600, bbox_inches="tight")
+plt.show()
 
 # show coefs for logistic regression with feature names
 feature_names = train_df2.drop(columns=['AdoptionSpeed', 'PetID']).columns
@@ -116,6 +120,13 @@ train_df.groupby(['Type', 'Breed1'])[['Breed1']].count().sort_values(by='Breed1'
 
 # 1    307       4610  mixed breed dog
 # 2    266       2463  domestic short hair cat
+
+# age count
+train_df.groupby(['Age'])[['Breed1']].count().sort_values(by='Breed1', ascending=False)
+
+# 1    307       4610  mixed breed dog
+# 2    266       2463  domestic short hair cat
+
 
 # photo count histogram
 grouped = train_df.groupby(['PhotoAmt'])['Type'].count().sort_values(ascending=False)
@@ -222,6 +233,40 @@ print("Test set: {:.2f}%".format(100*f1_score(label_test, rfmodel2.predict(X3_te
 # Training: 69.54%
 # Test set: 56.55%
 
+et = ExtraTreesClassifier(n_estimators=100, min_samples_leaf=10, n_jobs=-1,
+                            class_weight='balanced')
+et.fit(X3_train, label_train)
+print("The score for extra trees is")
+print("Training: {:.2f}%".format(100*f1_score(label_train, et.predict(X3_train))))
+print("Test set: {:.2f}%".format(100*f1_score(label_test, et.predict(X3_test))))
+
+# The score for extra trees is
+# Training: 65.25%
+# Test set: 54.28%
+
+adb = AdaBoostClassifier(base_estimator=DecisionTreeClassifier(max_depth=1, class_weight='balanced'),
+                         n_estimators=100)
+adb.fit(X3_train, label_train)
+print("The score for AdaBoost is")
+print("Training: {:.2f}%".format(100*f1_score(label_train, adb.predict(X3_train))))
+print("Test set: {:.2f}%".format(100*f1_score(label_test, adb.predict(X3_test))))
+
+# The score for AdaBoost is
+# Training: 68.89%
+# Test set: 53.83%
+
+# no option to adjust class weights for gradient boosted trees
+# gbt = GradientBoostingClassifier(n_estimators=100, learning_rate=0.5,
+#                                  max_depth=3)
+# gbt.fit(X3_train, label_train)
+# print("The score for GB is")
+# print("Training: {:.2f}%".format(100*f1_score(label_train, gbt.predict(X3_train))))
+# print("Test set: {:.2f}%".format(100*f1_score(label_test, gbt.predict(X3_test))))
+
+# The score for GB is
+# Training: 61.72%
+# Test set: 45.64%
+
 # plot first few levels of decision tree  ###############
 # extract one single tree
 # estimator = rfmodel2.estimators_[5]
@@ -305,3 +350,54 @@ print("Training: {:.2f}%".format(100*f1_score(label_train, logit2.predict(X2_tra
 print("Test set: {:.2f}%".format(100*f1_score(label_test, logit2.predict(X2_test), average='weighted')))
 
 cohen_kappa_score(label_test, logit2.predict(X2_test))
+
+# neural network classifier  #####################
+import os
+import keras
+from keras import backend as K
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
+nn_model = keras.models.Sequential()
+nn_model.add(keras.layers.Dense(units=20, input_dim=X2_train.shape[1], activation='tanh'))
+nn_model.add(keras.layers.Dense(units=20, activation='tanh'))
+nn_model.add(keras.layers.Dense(units=1, activation='sigmoid'))
+
+def f1(y_true, y_pred):
+    def recall(y_true, y_pred):
+        """Recall metric.
+
+        Only computes a batch-wise average of recall.
+
+        Computes the recall, a metric for multi-label classification of
+        how many relevant items are selected.
+        """
+        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+        possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+        recall = true_positives / (possible_positives + K.epsilon())
+        return recall
+
+    def precision(y_true, y_pred):
+        """Precision metric.
+
+        Only computes a batch-wise average of precision.
+
+        Computes the precision, a metric for multi-label classification of
+        how many selected items are relevant.
+        """
+        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+        predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+        precision = true_positives / (predicted_positives + K.epsilon())
+        return precision
+    precision = precision(y_true, y_pred)
+    recall = recall(y_true, y_pred)
+    return 2*((precision*recall)/(precision+recall+K.epsilon()))
+
+
+nn_model.compile(loss='binary_crossentropy',
+          optimizer= "adam",
+          metrics=[f1])
+
+h = nn_model.fit(X2_train, label_train, batch_size=100, epochs=200)
+nn_model.evaluate(X2_test, label_test)
+# [1.1126724123954772, 0.44647203882535297]
+# overfitting: train f1 in the last iter is 0.84
