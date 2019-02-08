@@ -233,6 +233,68 @@ print("Test set: {:.2f}%".format(100*f1_score(label_test, rfmodel2.predict(X3_te
 # Training: 69.54%
 # Test set: 56.55%
 
+# balanced class weights (dummified)
+rfmodel3 = RandomForestClassifier(n_estimators=100, min_samples_leaf=10, n_jobs=-1,
+                                  class_weight='balanced')
+rfmodel3.fit(X2_train, label_train)
+
+print("The score for random forest is")
+print("Training: {:.2f}%".format(100*f1_score(label_train, rfmodel3.predict(X2_train))))
+print("Test set: {:.2f}%".format(100*f1_score(label_test, rfmodel3.predict(X2_test))))
+
+# The score for random forest is
+# Training: 58.06%
+# Test set: 53.29%
+
+# balanced class weights (with frequency encoding for breed categories)
+freq = train_df.groupby(['Breed1']).size().sort_values(ascending=False)
+freq = freq.reset_index()
+freq.columns = ['Breed1', 'Count']
+freq_dict = dict(zip(freq['Breed1'], freq['Count']))
+
+train_df_freq = train_df.copy()
+train_df_freq['Breed1'] = train_df_freq['Breed1'].replace(freq_dict)
+train_df_freq['Breed2'] = train_df_freq['Breed2'].replace(freq_dict)
+
+# test train split
+Xf_train, Xf_test, label_train, label_test = train_test_split(train_df_freq.drop(columns=['AdoptionSpeed', 'PetID']),
+                                                            train_df_freq['AdoptionSpeed'],
+                                                            test_size=0.3, random_state=41)
+
+rfmodel4 = RandomForestClassifier(n_estimators=100, min_samples_leaf=10, n_jobs=-1,
+                                  class_weight='balanced')
+rfmodel4.fit(Xf_train, label_train)
+
+print("The score for random forest is")
+print("Training: {:.2f}%".format(100*f1_score(label_train, rfmodel4.predict(Xf_train))))
+print("Test set: {:.2f}%".format(100*f1_score(label_test, rfmodel4.predict(Xf_test))))
+
+# The score for random forest is
+# Training: 70.00%
+# Test set: 56.18%
+
+# balanced class weights (with age z score)
+z_score = lambda x: (x - x.mean())/x.std()
+train_df_trans = train_df.copy()
+train_df_trans['Age'] = train_df_trans.groupby(['Type'])['Age'].transform(z_score)
+
+# test train split
+Xt_train, Xt_test, label_train, label_test = train_test_split(train_df_trans.drop(columns=['AdoptionSpeed', 'PetID']),
+                                                            train_df_trans['AdoptionSpeed'],
+                                                            test_size=0.3, random_state=41)
+
+rfmodel5 = RandomForestClassifier(n_estimators=100, min_samples_leaf=10, n_jobs=-1,
+                                  class_weight='balanced')
+rfmodel5.fit(Xt_train, label_train)
+
+print("The score for random forest is")
+print("Training: {:.2f}%".format(100*f1_score(label_train, rfmodel5.predict(Xt_train))))
+print("Test set: {:.2f}%".format(100*f1_score(label_test, rfmodel5.predict(Xt_test))))
+
+# The score for random forest is
+# Training: 69.55%
+# Test set: 55.48%
+
 et = ExtraTreesClassifier(n_estimators=100, min_samples_leaf=10, n_jobs=-1,
                             class_weight='balanced')
 et.fit(X3_train, label_train)
@@ -357,10 +419,19 @@ import keras
 from keras import backend as K
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
-nn_model = keras.models.Sequential()
-nn_model.add(keras.layers.Dense(units=20, input_dim=X2_train.shape[1], activation='tanh'))
-nn_model.add(keras.layers.Dense(units=20, activation='tanh'))
-nn_model.add(keras.layers.Dense(units=1, activation='sigmoid'))
+# random over sampling of under-represented class
+from imblearn.over_sampling import RandomOverSampler
+
+ros = RandomOverSampler(random_state=0)
+X_resampled, y_resampled = ros.fit_sample(X2_train, label_train)
+
+# carve out a validation set to tune number of epochs
+X_resampled_train, X_resampled_val, label_resampled_train, label_resampled_val = train_test_split(X_resampled,
+                                                                                                   y_resampled,
+                                                                                                   test_size=0.2,
+                                                                                                   random_state=41)
+
+# setting up the model ########################
 
 def f1(y_true, y_pred):
     def recall(y_true, y_pred):
@@ -392,12 +463,48 @@ def f1(y_true, y_pred):
     recall = recall(y_true, y_pred)
     return 2*((precision*recall)/(precision+recall+K.epsilon()))
 
+def build_model():
+    nn_model = keras.models.Sequential()
+    nn_model.add(keras.layers.Dense(units=20, input_dim=X_resampled_train.shape[1], activation='tanh'))
+    nn_model.add(keras.layers.Dense(units=20, activation='tanh'))
+    nn_model.add(keras.layers.Dense(units=1, activation='sigmoid'))
 
-nn_model.compile(loss='binary_crossentropy',
-          optimizer= "adam",
-          metrics=[f1])
+    nn_model.compile(loss='binary_crossentropy',
+              optimizer= "adam",
+              metrics=[f1])
+    return nn_model
 
-h = nn_model.fit(X2_train, label_train, batch_size=100, epochs=200)
+nn_model = build_model()
+h = nn_model.fit(X_resampled_train, label_resampled_train, batch_size=100, epochs=200,
+                 validation_data=(X_resampled_val, label_resampled_val))
 nn_model.evaluate(X2_test, label_test)
 # [1.1126724123954772, 0.44647203882535297]
 # overfitting: train f1 in the last iter is 0.84
+
+# create plot of loss/metric over epochs for training and validation
+def plot_train_val_scores(model_h):
+    score = model_h.history['f1']
+    val_score = model_h.history['val_f1']
+    history_dict = model_h.history
+    epochs = range(1, len(history_dict['f1']) + 1)
+
+    plt.plot(epochs, score, 'bo', label='training f1 score')  # blue dot
+    plt.plot(epochs, val_score, 'b', label='validation f1 score')
+    plt.title('training and validation f1 score')
+    plt.xlabel('Epochs')
+    plt.ylabel('f1')
+    plt.legend()
+
+nn_model = build_model()
+h2 = nn_model.fit(X_resampled_train, label_resampled_train, batch_size=100, epochs=125)
+nn_model.evaluate(X2_test, label_test)
+# [1.2461713705744062, 0.4506803986572084]
+
+nn_model = build_model()
+h3 = nn_model.fit(X_resampled_train, label_resampled_train, batch_size=20, epochs=100,
+                  validation_data=(X_resampled_val, label_resampled_val))
+nn_model.evaluate(X2_test, label_test)
+# [1.4074761067117965, 0.4550816105235191]
+
+plot_train_val_scores(h3)
+plt.show()
