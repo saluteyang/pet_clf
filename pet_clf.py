@@ -126,7 +126,6 @@ breed_coefs['Species'] = ['cat' if (int(x) > 240) & (int(x) < 307) else 'dog' fo
 grouped_by_species = breed_coefs.groupby(['Species'])['breed', 'coef', 'abs_coef']
 grouped_by_species = grouped_by_species.apply(lambda _df: _df.sort_values(by=['coef'])).reset_index()
 
-
 grouped_by_species['breed'] = grouped_by_species['breed'].astype('int')
 grouped_by_species = grouped_by_species.merge(breed_labels[['BreedID', 'BreedName']], left_on='breed', right_on='BreedID')
 
@@ -153,7 +152,130 @@ train_df_wg = train_df.merge(breed_labels[['BreedID', 'BreedName']], how='left',
 train_df_wg[(train_df_wg['Type']==1) & (train_df_wg['BreedName']!='Mixed Breed')]['BreedID'].count()
 train_df_wg[(train_df_wg['Type']==1)]['BreedGroup'].dropna().count()
 
-#           feature      coef  abs_coef
+train_df_sml = train_df_wg[(train_df_wg['Type']==1) & (train_df_wg['BreedName']!='Mixed Breed')]
+train_df_sml = train_df_sml[train_df_sml['BreedName'].notna()]
+train_df_sml['BreedGroup'] = ['Unknown' if x is np.nan else x for x in train_df_sml['BreedGroup'].tolist()]
+
+# experiment with only known breed dogs ########################
+# training data
+train_df = pd.read_csv('data/train.csv')
+
+# drop a few columns and restrict to quantity == 1
+train_df = train_df[train_df['Quantity']==1].drop(columns=['Description', 'VideoAmt', 'RescuerID', 'Name', 'Quantity'])
+train_sent = pd.read_csv('sent_train.csv', index_col=0)
+
+# keep only the records that have sentiment score
+train_df = train_df.merge(train_sent, how='inner', left_on='PetID', right_index=True)
+
+# condensed dataset with only dogs, and primary breed that is not mixed, additional feature of BreedGroup included
+train_df_wg = train_df.merge(breed_labels[['BreedID', 'BreedName']], how='left', left_on='Breed1', right_on='BreedID').\
+    merge(breed_groups, how='left', on='BreedName')
+
+# how many dog breeds were a match to groups?
+train_df_wg[(train_df_wg['Type']==1) & (train_df_wg['BreedName']!='Mixed Breed')]['BreedID'].count()
+train_df_wg[(train_df_wg['Type']==1)]['BreedGroup'].dropna().count()
+
+train_df_sml = train_df_wg[(train_df_wg['Type']==1) & (train_df_wg['BreedName']!='Mixed Breed')]
+train_df_sml = train_df_sml[train_df_sml['BreedName'].notna()]
+train_df_sml['BreedGroup'] = ['Unknown' if x is np.nan else x for x in train_df_sml['BreedGroup'].tolist()]
+train_df_sml['BreedGroup'] = [x.strip() for x in train_df_sml['BreedGroup']]
+
+train_df_sml = train_df_sml.drop(columns=['Type', 'Breed1', 'Breed2', 'PetID', 'BreedID'])
+train_df_sml = pd.get_dummies(train_df_sml, columns=['BreedName', 'BreedGroup', 'Gender', 'Color1',
+                                                      'Color2', 'Color3', 'Vaccinated', 'Dewormed',
+                                                      'Sterilized', 'Health', 'State'])
+train_df_sml['AdoptionSpeed'] = train_df_sml['AdoptionSpeed'].replace({1: 0, 2: 0, 3: 0, 4: 1})
+
+# test train split
+Xs_train, Xs_test, label_train_s, label_test_s = train_test_split(train_df_sml.drop(columns=['AdoptionSpeed']),
+                                                            train_df_sml['AdoptionSpeed'],
+                                                            test_size=0.3, random_state=41)
+
+
+# balanced class weights Random Forest
+rfmodel_fin = RandomForestClassifier(n_estimators=100, min_samples_leaf=10, n_jobs=-1,
+                                     class_weight='balanced')
+rfmodel_fin.fit(Xs_train, label_train_s)
+
+print("The score for random forest is")
+print("Training: {:.2f}%".format(100*f1_score(label_train_s, rfmodel_fin.predict(Xs_train), average='weighted')))
+print("Test set: {:.2f}%".format(100*f1_score(label_test_s, rfmodel_fin.predict(Xs_test), average='weighted')))
+
+# The score for random forest is
+# Training: 84.22%
+# Test set: 73.83%
+
+# remove BreedName/BreedGroup to see impact of absence  #####################
+train_df_sml = train_df_wg[(train_df_wg['Type']==1) & (train_df_wg['BreedName']!='Mixed Breed')]
+train_df_sml = train_df_sml[train_df_sml['BreedName'].notna()]
+train_df_sml['BreedGroup'] = ['Unknown' if x is np.nan else x for x in train_df_sml['BreedGroup'].tolist()]
+train_df_sml['BreedGroup'] = [x.strip() for x in train_df_sml['BreedGroup']]
+
+train_df_sml = train_df_sml.drop(columns=['Type', 'Breed1', 'Breed2', 'PetID', 'BreedID', 'BreedName'])
+train_df_sml = pd.get_dummies(train_df_sml, columns=['BreedGroup', 'Gender', 'Color1',
+                                                      'Color2', 'Color3', 'Vaccinated', 'Dewormed',
+                                                      'Sterilized', 'Health', 'State'])
+train_df_sml['AdoptionSpeed'] = train_df_sml['AdoptionSpeed'].replace({1: 0, 2: 0, 3: 0, 4: 1})
+
+# test train split
+Xs_train, Xs_test, label_train_s, label_test_s = train_test_split(train_df_sml.drop(columns=['AdoptionSpeed']),
+                                                            train_df_sml['AdoptionSpeed'],
+                                                            test_size=0.3, random_state=41)
+
+
+# balanced class weights Random Forest
+rfmodel_fin = RandomForestClassifier(n_estimators=100, min_samples_leaf=10, n_jobs=-1,
+                                     class_weight='balanced')
+rfmodel_fin.fit(Xs_train, label_train_s)
+
+print("The score for random forest is")
+print("Training: {:.2f}%".format(100*f1_score(label_train_s, rfmodel_fin.predict(Xs_train), average='weighted')))
+print("Test set: {:.2f}%".format(100*f1_score(label_test_s, rfmodel_fin.predict(Xs_test), average='weighted')))
+
+# The score for random forest is
+# Training: 86.95%
+# Test set: 75.54%
+
+# the scores are similar with either BreedName or BreedGroup
+# BreedGroups are Companion, Guardian, Gun, Herding, Northern, Scenthound, Sighthound, Terrier
+
+# logistic with balanced class weights
+logit_fin = LogisticRegression(C=0.95, class_weight='balanced')
+logit_fin.fit(Xs_train, label_train_s)
+print("The score for logistic regression is")
+print("Training: {:.2f}%".format(100*f1_score(label_train_s, logit_fin.predict(Xs_train))))
+print("Test set: {:.2f}%".format(100*f1_score(label_test_s, logit_fin.predict(Xs_test))))
+
+# The score for logistic regression is
+# Training: 47.17%
+# Test set: 30.28%
+
+# show coefs for logistic regression with feature names
+feature_names = train_df_sml.drop(columns=['AdoptionSpeed']).columns
+feature_coefs = pd.DataFrame({'feature': feature_names, 'coef': logit_fin.coef_[0]})
+feature_coefs['abs_coef'] = abs(feature_coefs['coef'])
+feature_coefs.sort_values(by='abs_coef', ascending=False, inplace=True)
+
+# for known breed dog only logit model with balanced class weights
+
+#                                      feature      coef  abs_coef
+# 38                       BreedName_Dalmatian  2.061684  2.061684
+# 97                   BreedName_Silky Terrier -1.684597  1.684597
+# 26                    BreedName_Bull Terrier  1.367841  1.367841
+# 11               BreedName_Australian Kelpie -1.105527  1.105527
+# 161                              State_41327  1.055618  1.055618
+# 10          BreedName_American Water Spaniel  1.029859  1.029859
+# 144                                 Color3_6  1.026704  1.026704
+# 27                     BreedName_Bullmastiff -0.993232  0.993232
+# 52                    BreedName_German Spitz  0.976281  0.976281
+# 57                           BreedName_Hound  0.935287  0.935287
+# 164                              State_41335  0.926152  0.926152
+# 105                     BreedName_Weimaraner  0.909837  0.909837
+
+
+# for original logic model with balanced class weights
+
+#           feature      coef  abs_coe
 # 173    Breed1_307  0.601116  0.601116
 # 0             Age  0.394190  0.394190
 # 146    Breed1_276 -0.317996  0.317996  (Maine Coon, largest domestic breed)
@@ -367,6 +489,41 @@ print("Test set: {:.2f}%".format(100*f1_score(label_test, adb.predict(X3_test)))
 # The score for AdaBoost is
 # Training: 68.89%
 # Test set: 53.83%
+
+# xgboost ######################################
+import os
+import keras
+from keras import backend as K
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
+# random over sampling of under-represented class
+from imblearn.over_sampling import RandomOverSampler
+import xgboost as xgb
+
+ros = RandomOverSampler(random_state=0)
+X_resampled, y_resampled = ros.fit_sample(X2_train, label_train)
+
+X_resampled_train, X_resampled_val, label_resampled_train, label_resampled_val = train_test_split(X_resampled,
+                                                                                                   y_resampled,
+                                                                                                   test_size=0.2,
+                                                                                                   random_state=41)
+
+xgbc = xgb.XGBClassifier(n_estimators=1000,
+                         max_depth=3,
+                         objective='binary:logistic',
+                         learning_rate=0.05
+                         )
+
+eval_set = [(X_resampled_train, label_resampled_train), (X_resampled_val, label_resampled_val)]
+xgbc.fit(
+    X_resampled_train,
+    label_resampled_train,
+    eval_set=eval_set,
+    eval_metric='auc',
+)
+f1_score(label_test, xgbc.predict(X2_test))
+# 0.5634178905206944 (n_estimator=100)
+# 0.5685649202733486 (n_estimator=1000)
 
 # no option to adjust class weights for gradient boosted trees
 # gbt = GradientBoostingClassifier(n_estimators=100, learning_rate=0.5,
