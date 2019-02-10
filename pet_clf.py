@@ -239,6 +239,19 @@ print("Test set: {:.2f}%".format(100*f1_score(label_test_s, rfmodel_fin.predict(
 # the scores are similar with either BreedName or BreedGroup
 # BreedGroups are Companion, Guardian, Gun, Herding, Northern, Scenthound, Sighthound, Terrier
 
+# feature importance plot (unknown breed dogs only, dummified categories)
+feature_names = train_df_sml.drop(columns=['AdoptionSpeed']).columns
+importances = rfmodel_fin.feature_importances_
+indices = np.argsort(importances)
+
+features_plot = 6
+plt.figure()
+plt.barh(range(len(indices))[-features_plot:], importances[indices][-features_plot:], color='b', align='center')
+plt.yticks(range(len(indices))[-features_plot:], [feature_names[i] for i in indices][-features_plot:])
+plt.xlabel('Relative Importance')
+plt.title('Feature Importances')
+plt.show()
+
 # logistic with balanced class weights
 logit_fin = LogisticRegression(C=0.95, class_weight='balanced')
 logit_fin.fit(Xs_train, label_train_s)
@@ -445,6 +458,19 @@ print("Test set: {:.2f}%".format(100*f1_score(label_test, rfmodel4.predict(Xf_te
 # The score for random forest is
 # Training: 70.00%
 # Test set: 56.18%
+
+# feature importance plot (frequency encoded breed categories, not dummified)
+feature_names = train_df_freq.drop(columns=['AdoptionSpeed', 'PetID']).columns
+importances = rfmodel4.feature_importances_
+indices = np.argsort(importances)
+
+features_plot = 6
+plt.figure()
+plt.barh(range(len(indices))[-features_plot:], importances[indices][-features_plot:], color='b', align='center')
+plt.yticks(range(len(indices))[-features_plot:], [feature_names[i] for i in indices][-features_plot:])
+plt.xlabel('Relative Importance')
+plt.title('Feature Importances')
+plt.show()
 
 # balanced class weights (with age z score)
 z_score = lambda x: (x - x.mean())/x.std()
