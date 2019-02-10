@@ -81,6 +81,21 @@ print("The score for logistic regression is")
 print("Training: {:.2f}%".format(100*f1_score(label_train, logit.predict(X2_train))))
 print("Test set: {:.2f}%".format(100*f1_score(label_test, logit.predict(X2_test))))
 
+# The score for logistic regression is
+# Training: 41.18%
+# Test set: 35.47%
+
+# logistic with balanced class weights
+logit = LogisticRegression(C=0.95, class_weight='balanced')
+logit.fit(X2_train, label_train)
+print("The score for logistic regression is")
+print("Training: {:.2f}%".format(100*f1_score(label_train, logit.predict(X2_train))))
+print("Test set: {:.2f}%".format(100*f1_score(label_test, logit.predict(X2_test))))
+
+# The score for logistic regression is
+# Training: 53.68%
+# Test set: 51.40%
+
 # interpretation and diagnostics ###################
 # select numerical columns for pairplot
 numeric_cols = ['Age', 'MaturitySize', 'FurLength', 'Fee', 'PhotoAmt',
@@ -100,7 +115,43 @@ plt.show()
 feature_names = train_df2.drop(columns=['AdoptionSpeed', 'PetID']).columns
 feature_coefs = pd.DataFrame({'feature': feature_names, 'coef': logit.coef_[0]})
 feature_coefs['abs_coef'] = abs(feature_coefs['coef'])
-feature_coefs.sort_values(by='abs_coef', ascending=False)
+feature_coefs.sort_values(by='abs_coef', ascending=False, inplace=True)
+
+# breed subset features
+breed_labels = pd.read_csv('data/breed_labels.csv')
+
+breed_coefs = feature_coefs[(feature_coefs['feature'].str.contains('Breed1')) & (feature_coefs['abs_coef'] > 0.1)]
+breed_coefs[['feature', 'breed']] = breed_coefs['feature'].str.split('_', expand=True)
+breed_coefs['Species'] = ['cat' if (int(x) > 240) & (int(x) < 307) else 'dog' for x in breed_coefs['breed']]
+grouped_by_species = breed_coefs.groupby(['Species'])['breed', 'coef', 'abs_coef']
+grouped_by_species = grouped_by_species.apply(lambda _df: _df.sort_values(by=['coef'])).reset_index()
+
+
+grouped_by_species['breed'] = grouped_by_species['breed'].astype('int')
+grouped_by_species = grouped_by_species.merge(breed_labels[['BreedID', 'BreedName']], left_on='breed', right_on='BreedID')
+
+plt.bar(grouped_by_species[grouped_by_species['Species']=='cat']['BreedName'],
+        grouped_by_species[grouped_by_species['Species']=='cat']['coef'])
+plt.xticks(rotation=90)
+plt.show()
+
+plt.bar(grouped_by_species[grouped_by_species['Species']=='dog']['BreedName'],
+        grouped_by_species[grouped_by_species['Species']=='dog']['coef'])
+plt.xticks(rotation=90)
+plt.show()
+
+# add breed groups
+import unicodedata
+breed_groups = pd.read_csv('data/breed_groups.csv', encoding='latin_1')
+for i in range(len(breed_groups['BreedName'])):
+    breed_groups['BreedName'][i] = unicodedata.normalize('NFKD', breed_groups['BreedName'][i]).encode('ascii', 'ignore').decode('utf-8')
+
+train_df_wg = train_df.merge(breed_labels[['BreedID', 'BreedName']], how='left', left_on='Breed1', right_on='BreedID').\
+    merge(breed_groups, how='left', on='BreedName')
+
+# how many dog breeds were a match to groups?
+train_df_wg[(train_df_wg['Type']==1) & (train_df_wg['BreedName']!='Mixed Breed')]['BreedID'].count()
+train_df_wg[(train_df_wg['Type']==1)]['BreedGroup'].dropna().count()
 
 #           feature      coef  abs_coef
 # 173    Breed1_307  0.601116  0.601116

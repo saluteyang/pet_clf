@@ -31,7 +31,7 @@ train_sent = pd.read_csv('sent_train.csv', index_col=0)
 # keep only the records that have sentiment score
 train_df = train_df.merge(train_sent, how='inner', left_on='PetID', right_index=True)
 train_df['AdoptionSpeed'] = train_df['AdoptionSpeed'].replace({1: 0, 2: 0, 3: 0, 4: 1})
-
+##########################
 # test train split
 X_train, X_test, label_train, label_test = train_test_split(train_df.drop(columns=['AdoptionSpeed', 'PetID']),
                                                             train_df['AdoptionSpeed'],
@@ -42,6 +42,22 @@ std = StandardScaler()
 std.fit(X_train)
 X_train = std.transform(X_train)
 X_test = std.transform(X_test)
+##########################
+# one hot encode the dummy variables stored as values
+train_df2 = pd.get_dummies(train_df, columns=['Type', 'Breed1', 'Breed2', 'Gender', 'Color1',
+                                              'Color2', 'Color3', 'Vaccinated', 'Dewormed',
+                                              'Sterilized', 'Health', 'State'])
+
+# test train split
+X2_train, X2_test, label_train, label_test = train_test_split(train_df2.drop(columns=['AdoptionSpeed', 'PetID']),
+                                                            train_df2['AdoptionSpeed'],
+                                                            test_size=0.3, random_state=41)
+
+# standard scaler (omit for random forest)
+std = StandardScaler()
+std.fit(X2_train)
+X2_train = std.transform(X2_train)
+X2_test = std.transform(X2_test)
 
 # ensemble models
 logit = LogisticRegression(C=0.95, class_weight='balanced')
@@ -65,13 +81,13 @@ models = ['logit', 'rf', 'et', 'adb', 'svm']
 
 for model_name in models:
     curr_model = eval(model_name)
-    curr_model.fit(X_train, label_train)
+    curr_model.fit(X2_train, label_train)
     with open(f"models/{model_name}.pickle", "wb") as pfile:
         pickle.dump(curr_model, pfile)
 
 # ensembling from pre-trained models ###########
 # Load pre-trained/tuned models
-models = ['rf', 'et', 'adb', 'svm']
+models = ['logit', 'rf', 'et', 'adb', 'svm']
 for model_name in models:
     with open(f"models/{model_name}.pickle", "rb") as pfile:
         exec(f"{model_name} = pickle.load(pfile)")
@@ -81,7 +97,7 @@ model_list = list(zip(models, model_vars))
 
 for model_name in models:
     curr_model = eval(model_name)
-    print(f'{model_name} score: {f1_score(label_test, curr_model.predict(X_test))}')
+    print(f'{model_name} score: {f1_score(label_test, curr_model.predict(X2_test))}')
 
 # knn score: 0.3842794759825327
 # logit score: 0.49096022498995573
@@ -90,14 +106,22 @@ for model_name in models:
 # adb score: 0.5383211678832116
 # svm score: 0.5563347358578775
 
+# scores with one-hot encoding of categorical features
+# logit score: 0.5140311804008909
+# rf score: 0.5264586160108548
+# et score: 0.5053813757604119
+# adb score: 0.549127640036731
+# svm score: 0.47935548841893255
+
 # create meta-classifier
 stacked = StackingClassifier(classifiers=model_vars,
-                             meta_classifier=LogisticRegression(class_weight='balanced'),
+                             meta_classifier=BernoulliNB(),
                              use_probas=False)
-stacked.fit(X_train, label_train)
+stacked.fit(X2_train, label_train)
 
-print(f'stacked score: {f1_score(label_test, stacked.predict(X_test))}')
+print(f'stacked score: {f1_score(label_test, stacked.predict(X2_test))}')
 # stacked score: 0.5604166666666668 (Bernoulli meta)
 # stacked score: 0.5366666666666667 (Logistic meta)
 # stacked score: 0.5636101776284205 (Logistic meta with balanced class weights)
-
+# stacked score: 0.5480459770114943 (Logistic meta with balanced class weights and one-hot categories)
+# stacked score: 0.533467539003523 (Bernoulli meta with one-hot categories)
