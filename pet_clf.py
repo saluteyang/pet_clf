@@ -37,6 +37,14 @@ from sklearn.neighbors import KNeighborsClassifier
 from mlxtend.plotting import plot_decision_regions
 from sklearn.tree import export_graphviz, DecisionTreeClassifier
 
+import os
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+from imblearn.over_sampling import RandomOverSampler
+import xgboost as xgb
+
+import keras
+from keras import backend as K
+
 # data pre-processing #########################
 # training data
 train_df = pd.read_csv('data/train.csv')
@@ -517,15 +525,7 @@ print("Test set: {:.2f}%".format(100*f1_score(label_test, adb.predict(X3_test)))
 # Test set: 53.83%
 
 # xgboost ######################################
-import os
-import keras
-from keras import backend as K
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-
-# random over sampling of under-represented class
-from imblearn.over_sampling import RandomOverSampler
-import xgboost as xgb
-
+# random oversampling of under-represented class
 ros = RandomOverSampler(random_state=0)
 X_resampled, y_resampled = ros.fit_sample(X2_train, label_train)
 
@@ -534,10 +534,13 @@ X_resampled_train, X_resampled_val, label_resampled_train, label_resampled_val =
                                                                                                    test_size=0.2,
                                                                                                    random_state=41)
 
-xgbc = xgb.XGBClassifier(n_estimators=1000,
-                         max_depth=3,
+xgbc = xgb.XGBClassifier(n_estimators=100,
+                         max_depth=5,
                          objective='binary:logistic',
-                         learning_rate=0.05
+                         learning_rate=0.05,
+                         subsample=0.8
+                         # min_child_weight=3
+                         # colsample_bytree=0.8
                          )
 
 eval_set = [(X_resampled_train, label_resampled_train), (X_resampled_val, label_resampled_val)]
@@ -545,11 +548,15 @@ xgbc.fit(
     X_resampled_train,
     label_resampled_train,
     eval_set=eval_set,
-    eval_metric='auc',
+    eval_metric='aucpr',
 )
 f1_score(label_test, xgbc.predict(X2_test))
-# 0.5634178905206944 (n_estimator=100)
-# 0.5685649202733486 (n_estimator=1000)
+# 0.5634178905206944 (n_estimator=100, max_depth=3)
+# 0.5685649202733486 (n_estimator=1000, max_depth=3)
+# 0.5730027548209367 ((n_estimator=100, max_depth=5)
+# 0.5784897025171624 (same as above + subsample=0.8)
+# 0.5712984054669704 (same as above + min_child_weight=3)
+# 0.5716911764705881 (no min_child_weight, colsample_bytree=0.8)
 
 # no option to adjust class weights for gradient boosted trees
 # gbt = GradientBoostingClassifier(n_estimators=100, learning_rate=0.5,
@@ -648,14 +655,7 @@ print("Test set: {:.2f}%".format(100*f1_score(label_test, logit2.predict(X2_test
 cohen_kappa_score(label_test, logit2.predict(X2_test))
 
 # neural network classifier  #####################
-import os
-import keras
-from keras import backend as K
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-
 # random over sampling of under-represented class
-from imblearn.over_sampling import RandomOverSampler
-
 ros = RandomOverSampler(random_state=0)
 X_resampled, y_resampled = ros.fit_sample(X2_train, label_train)
 
