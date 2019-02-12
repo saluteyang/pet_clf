@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="b7c079d9-51f2-4ce5-b231-4788c387267b" name="Default Changelist" comment="">
+    <list default="true" id="b7c079d9-51f2-4ce5-b231-4788c387267b" name="Default Changelist" comment="added some cv for xgb">
+      <change afterPath="$PROJECT_DIR$/age_photoamt.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/feature_import.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ensemble.py" beforeDir="false" afterPath="$PROJECT_DIR$/ensemble.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/adb.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/models/adb.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/et.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/models/et.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/logit.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/models/logit.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/rf.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/models/rf.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/svm.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/models/svm.pickle" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pet_clf.py" beforeDir="false" afterPath="$PROJECT_DIR$/pet_clf.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -16,8 +24,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/pet_clf.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="342">
-              <caret line="255" column="63" lean-forward="true" selection-start-line="255" selection-start-column="63" selection-end-line="255" selection-end-column="63" />
+            <state relative-caret-position="321">
+              <caret line="244" column="12" lean-forward="true" selection-start-line="244" selection-start-column="12" selection-end-line="244" selection-end-column="18" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -28,8 +36,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ensemble.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="378">
-              <caret line="75" column="42" selection-start-line="75" selection-start-column="42" selection-end-line="75" selection-end-column="42" />
+            <state relative-caret-position="276">
+              <caret line="78" lean-forward="true" selection-start-line="74" selection-end-line="78" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -45,7 +53,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/data/breed_labels.csv">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="4260">
+            <state relative-caret-position="1185">
               <caret line="284" column="14" selection-start-line="284" selection-start-column="14" selection-end-line="284" selection-end-column="14" />
             </state>
           </provider>
@@ -79,6 +87,9 @@
       <find>experiment</find>
       <find>plt.bar</find>
       <find>feature importance plot</find>
+      <find>randomover</find>
+      <find>xgboo</find>
+      <find>feature imp</find>
     </findStrings>
     <replaceStrings>
       <replace>nn_model</replace>
@@ -102,10 +113,9 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="1449" />
     <option name="y" value="23" />
-    <option name="width" value="2087" />
-    <option name="height" value="1405" />
+    <option name="width" value="1440" />
+    <option name="height" value="877" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
@@ -216,16 +226,30 @@
       <option name="project" value="LOCAL" />
       <updated>1549839504067</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="added some feature importance plots">
+      <created>1549842709094</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1549842709094</updated>
+    </task>
+    <task id="LOCAL-00008" summary="added some cv for xgb">
+      <created>1549893994082</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1549893994083</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="50248000" />
+    <option name="totallyTimeSpent" value="59114000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="1449" y="23" width="2087" height="1405" extended-state="0" />
+    <frame x="0" y="23" width="1440" height="877" extended-state="0" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.17506112" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.25608012" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -236,15 +260,15 @@
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Version Control" order="8" sideWeight="0.49928468" weight="0.32977912" />
+      <window_info active="true" anchor="bottom" id="Version Control" order="8" sideWeight="0.49928468" visible="true" weight="0.32866243" />
       <window_info anchor="bottom" id="Database Changes" order="9" />
       <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.5007153" side_tool="true" weight="0.3299363" />
       <window_info anchor="bottom" id="Terminal" order="11" weight="0.3299363" />
-      <window_info anchor="bottom" id="Python Console" order="12" sideWeight="0.49928468" visible="true" weight="0.19725819" />
+      <window_info anchor="bottom" id="Python Console" order="12" sideWeight="0.49928468" weight="0.3299363" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
-      <window_info active="true" anchor="right" id="SciView" order="3" visible="true" weight="0.33154035" />
+      <window_info anchor="right" id="SciView" order="3" visible="true" weight="0.31616595" />
       <window_info anchor="right" id="Database" order="4" />
     </layout>
   </component>
@@ -257,7 +281,9 @@
     <MESSAGE value="added some random forest variants" />
     <MESSAGE value="added breed grouping info" />
     <MESSAGE value="added analysis of known breed dogs" />
-    <option name="LAST_COMMIT_MESSAGE" value="added analysis of known breed dogs" />
+    <MESSAGE value="added some feature importance plots" />
+    <MESSAGE value="added some cv for xgb" />
+    <option name="LAST_COMMIT_MESSAGE" value="added some cv for xgb" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/data/test_sentiment/0a2e0e0f6.json">
@@ -288,27 +314,30 @@
     <entry file="file://$PROJECT_DIR$/data/breed_groups.csv">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/data/breed_labels.csv">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4260">
-          <caret line="284" column="14" selection-start-line="284" selection-start-column="14" selection-end-line="284" selection-end-column="14" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/ensemble.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="378">
-          <caret line="75" column="42" selection-start-line="75" selection-start-column="42" selection-end-line="75" selection-end-column="42" />
+        <state relative-caret-position="276">
+          <caret line="78" lean-forward="true" selection-start-line="74" selection-end-line="78" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/data/breed_labels.csv">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1185">
+          <caret line="284" column="14" selection-start-line="284" selection-start-column="14" selection-end-line="284" selection-end-column="14" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/age_photoamt.png">
+      <provider selected="true" editor-type-id="images" />
+    </entry>
     <entry file="file://$PROJECT_DIR$/pet_clf.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="342">
-          <caret line="255" column="63" lean-forward="true" selection-start-line="255" selection-start-column="63" selection-end-line="255" selection-end-column="63" />
+        <state relative-caret-position="321">
+          <caret line="244" column="12" lean-forward="true" selection-start-line="244" selection-start-column="12" selection-end-line="244" selection-end-column="18" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>

@@ -258,6 +258,7 @@ plt.barh(range(len(indices))[-features_plot:], importances[indices][-features_pl
 plt.yticks(range(len(indices))[-features_plot:], [feature_names[i] for i in indices][-features_plot:])
 plt.xlabel('Relative Importance')
 plt.title('Feature Importances')
+plt.savefig('feature_import.png', dpi=600, bbox_inches="tight")
 plt.show()
 
 # logistic with balanced class weights
@@ -525,6 +526,13 @@ print("Test set: {:.2f}%".format(100*f1_score(label_test, adb.predict(X3_test)))
 # Test set: 53.83%
 
 # xgboost ######################################
+# frequency encoding breed did not improve xgboost score
+# standard scaler (omit for random forest)
+std = StandardScaler()
+std.fit(Xf_train)
+Xf_train = std.transform(Xf_train)
+Xf_test = std.transform(Xf_test)
+
 # random oversampling of under-represented class
 ros = RandomOverSampler(random_state=0)
 X_resampled, y_resampled = ros.fit_sample(X2_train, label_train)
@@ -550,6 +558,8 @@ xgbc.fit(
     eval_set=eval_set,
     eval_metric='aucpr',
 )
+
+# Xf_test.columns = ['f' + str(i) for i in list(range(Xf_test.shape[1]))]
 f1_score(label_test, xgbc.predict(X2_test))
 # 0.5634178905206944 (n_estimator=100, max_depth=3)
 # 0.5685649202733486 (n_estimator=1000, max_depth=3)

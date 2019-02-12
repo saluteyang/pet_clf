@@ -43,6 +43,7 @@ std.fit(X_train)
 X_train = std.transform(X_train)
 X_test = std.transform(X_test)
 ##########################
+# option 1 ###################
 # one hot encode the dummy variables stored as values
 train_df2 = pd.get_dummies(train_df, columns=['Type', 'Breed1', 'Breed2', 'Gender', 'Color1',
                                               'Color2', 'Color3', 'Vaccinated', 'Dewormed',
@@ -58,6 +59,22 @@ std = StandardScaler()
 std.fit(X2_train)
 X2_train = std.transform(X2_train)
 X2_test = std.transform(X2_test)
+
+# option 2 ##################
+# balanced class weights (with frequency encoding for breed categories)
+freq = train_df.groupby(['Breed1']).size().sort_values(ascending=False)
+freq = freq.reset_index()
+freq.columns = ['Breed1', 'Count']
+freq_dict = dict(zip(freq['Breed1'], freq['Count']))
+
+train_df_freq = train_df.copy()
+train_df_freq['Breed1'] = train_df_freq['Breed1'].replace(freq_dict)
+train_df_freq['Breed2'] = train_df_freq['Breed2'].replace(freq_dict)
+
+# test train split
+Xf_train, Xf_test, label_train, label_test = train_test_split(train_df_freq.drop(columns=['AdoptionSpeed', 'PetID']),
+                                                            train_df_freq['AdoptionSpeed'],
+                                                            test_size=0.3, random_state=41)
 
 # ensemble models
 logit = LogisticRegression(C=0.95, class_weight='balanced')
@@ -81,7 +98,7 @@ models = ['logit', 'rf', 'et', 'adb', 'svm']
 
 for model_name in models:
     curr_model = eval(model_name)
-    curr_model.fit(X2_train, label_train)
+    curr_model.fit(Xf_train, label_train)
     with open(f"models/{model_name}.pickle", "wb") as pfile:
         pickle.dump(curr_model, pfile)
 
@@ -97,7 +114,7 @@ model_list = list(zip(models, model_vars))
 
 for model_name in models:
     curr_model = eval(model_name)
-    print(f'{model_name} score: {f1_score(label_test, curr_model.predict(X2_test))}')
+    print(f'{model_name} score: {f1_score(label_test, curr_model.predict(Xf_test))}')
 
 # knn score: 0.3842794759825327
 # logit score: 0.49096022498995573
@@ -112,6 +129,13 @@ for model_name in models:
 # et score: 0.5053813757604119
 # adb score: 0.549127640036731
 # svm score: 0.47935548841893255
+
+# scores with frequency encoded breed features
+# logit score: 0.48986083499005967
+# rf score: 0.568
+# et score: 0.5406721870433512
+# adb score: 0.5387453874538746
+# svm score: 0.45072115384615385
 
 # create meta-classifier
 stacked = StackingClassifier(classifiers=model_vars,
